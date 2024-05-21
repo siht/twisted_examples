@@ -4,22 +4,21 @@ from twisted.trial import unittest
 
 
 class CalculationTestCase(unittest.TestCase):
+    def setUp(self):
+        self.calc = Calculation()
+
+    def _test(self, operation, a, b, expected):
+        result = operation(a, b)
+        self.assertEqual(result, expected)
+
     def test_add(self):
-        calc = Calculation()
-        result = calc.add(3, 8)
-        self.assertEqual(result, 11)
+        self._test(self.calc.add, 3, 8, 11)
 
     def test_subtract(self):
-        calc = Calculation()
-        result = calc.subtract(7, 3)
-        self.assertEqual(result, 4)
+        self._test(self.calc.subtract, 7, 3, 4)
 
     def test_multiply(self):
-        calc = Calculation()
-        result = calc.multiply(12, 5)
-        self.assertEqual(result, 60)
+        self._test(self.calc.multiply, 6, 9, 54)
 
     def test_divide(self):
-        calc = Calculation()
-        result = calc.divide(12, 5)
-        self.assertEqual(result, 2)
+        self._test(self.calc.divide, 12, 5, 2)
