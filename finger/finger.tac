@@ -1,7 +1,8 @@
+from email import policy # no se porque no lo importa internamente y se necesita
 from twisted.application import internet, service, strports
 from twisted.internet import defer, endpoints, protocol, reactor
 from twisted.protocols import basic
-from twisted.web import resource, server, static
+from twisted.web import resource, server, static, xmlrpc
 from twisted.words.protocols import irc
 
 
@@ -58,6 +59,8 @@ class FingerService(service.Service):
         self.call.cancel()
 
     def getUser(self, user):
+        if isinstance(user, str):
+            user = user.encode()
         return defer.succeed(self.users.get(user, b"No such user"))
 
     def getFingerFactory(self):
@@ -76,6 +79,9 @@ class FingerService(service.Service):
             return static.Data(text, "text/html")
         r = resource.Resource()
         r.getChild = getData
+        x = xmlrpc.XMLRPC()
+        x.xmlrpc_getUser = self.getUser
+        r.putChild(b"RPC2", x)
         return r
 
     def getIRCBot(self, nickname):
