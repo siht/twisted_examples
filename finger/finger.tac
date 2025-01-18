@@ -25,14 +25,38 @@ class FingerFactory(protocol.ServerFactory):
         return defer.succeed(self.users.get(user, b"No such user"))
 
 
+class FingerSetterProtocol(basic.LineReceiver):
+    def connectionMade(self):
+        self.lines = []
+
+    def lineReceived(self, line):
+        self.lines.append(line)
+
+    def connectionLost(self, reason):
+        user = self.lines[0]
+        status = self.lines[1]
+        self.factory.setUser(user, status)
+
+
+class FingerSetterFactory(protocol.ServerFactory):
+    protocol = FingerSetterProtocol
+
+    def __init__(self, fingerFactory):
+        self.fingerFactory = fingerFactory
+    
+    def setUser(self, user, status):
+        self.fingerFactory.users[user] = status
+
+
 def main():
     # sudo /your_venv/twisted/bin/twistd -ny finger.tac
+    ff = FingerFactory({b"moshez": b"Happy and well"})
+    fsf = FingerSetterFactory(ff)
     global application
     application = service.Application("finger", uid=1, gid=1)
-    factory = FingerFactory({b"moshez": b"Happy and well"})
-    strports.service("tcp:79", factory, reactor=reactor).setServiceParent(
-        service.IServiceCollection(application)
-    )
+    serviceCollection = service.IServiceCollection(application)
+    strports.service("tcp:79", ff).setServiceParent(serviceCollection)
+    strports.service("tcp:1079", fsf).setServiceParent(serviceCollection)
 
 
 if __name__ == 'builtins':
