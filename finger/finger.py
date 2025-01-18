@@ -253,11 +253,16 @@ components.registerAdapter(PerspectiveFingerFromService, IFingerService, IPerspe
 @implementer(IFingerService)
 class FingerService(service.Service):
     def __init__(self, filename):
+        print('-'*100)
+        print(filename)
         self.users = {}
         self.filename = filename
     
     def _read(self):
         self.users.clear()
+        print('x'*100)
+        print(self.filename)
+        print('x'*100)
         with open(self.filename, "rb") as f:
             for line in f:
                 user, status = line.split(b":", 1)
@@ -267,6 +272,7 @@ class FingerService(service.Service):
         self.call = reactor.callLater(30, self._read)
 
     def startService(self):
+        print('*'*100)
         self._read()
         service.Service.startService(self)
 
@@ -318,5 +324,5 @@ def main():
     ).setServiceParent(serviceCollection)
 
 
-if __name__ == 'builtins':
+if __name__ == '__main__':
     main()
