@@ -1,14 +1,18 @@
 from twisted.internet import endpoints, protocol, reactor
+from twisted.protocols import basic
 
 
-class FingerProtocol(protocol.Protocol):
+class FingerProtocol(basic.LineReceiver):
     def lineReceived(self, user):
-        self.transport.write(b"No such user\r\n")
+        self.transport.write(self.factory.getUser(user) + b"\r\n")
         self.transport.loseConnection()
 
 
 class FingerFactory(protocol.ServerFactory):
     protocol = FingerProtocol
+
+    def getUser(self, user):
+        return b"No such user"
 
 
 def main():
