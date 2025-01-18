@@ -1,9 +1,10 @@
+import pwd
 from email import policy # no se porque no lo importa rpc internamente ya que se necesita
 
 import html
 from zope.interface import Interface, implementer
 from twisted.application import internet, service, strports
-from twisted.internet import defer, endpoints, protocol, reactor
+from twisted.internet import defer, endpoints, protocol, reactor, utils
 from twisted.protocols import basic
 from twisted.python import components
 from twisted.web import resource, server, xmlrpc
@@ -243,11 +244,21 @@ class FingerService(service.Service):
         return defer.succeed(list(self.users.keys()))
 
 
+@implementer(IFingerService)
+class LocalFingerService(service.Service):
+    def getUser(self, user):
+        # need a local finger daemon running for this to work
+        return utils.getProcessOutput("finger", [user])
+
+    def getUsers(self):
+        return defer.succeed([])
+
+
 def main():
     # sudo /your_venv/twisted/bin/twistd -ny finger.tac
     global application
     application = service.Application("finger", uid=1, gid=1)
-    f = FingerService("/etc/users")
+    f = LocalFingerService()
     serviceCollection = service.IServiceCollection(application)
     f.setServiceParent(serviceCollection)
     strports.service("tcp:79", IFingerFactory(f)).setServiceParent(serviceCollection)
