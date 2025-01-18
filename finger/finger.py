@@ -2,7 +2,7 @@ from twisted.internet import endpoints, protocol, reactor
 
 
 class FingerProtocol(protocol.Protocol):
-    def connectionMade(self):
+    def lineReceived(self, user):
         self.transport.loseConnection()
 
 
