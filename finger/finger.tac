@@ -1,6 +1,5 @@
 from email import policy # no se porque no lo importa rpc internamente ya que se necesita
 
-import html
 from zope.interface import Interface, implementer
 from twisted.application import internet, service, strports
 from twisted.internet import defer, endpoints, protocol, reactor, utils
@@ -302,7 +301,14 @@ def main():
     serviceCollection = service.IServiceCollection(application)
     f.setServiceParent(serviceCollection)
     strports.service("tcp:79", IFingerFactory(f)).setServiceParent(serviceCollection)
-    strports.service("tcp:8000", server.Site(resource.IResource(f))).setServiceParent(serviceCollection)
+    site = server.Site(resource.IResource(f))
+    strports.service(
+        "tcp:8000",
+        site,
+    ).setServiceParent(serviceCollection)
+    strports.service(
+        "ssl:port=443:certKey=cert.pem:privateKey=key.pem", site
+    ).setServiceParent(serviceCollection)
     i = IIRCClientFactory(f)
     i.nickname = "fingerbot"
     internet.ClientService(
