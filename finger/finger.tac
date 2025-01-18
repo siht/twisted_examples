@@ -1,4 +1,3 @@
-import pwd
 from email import policy # no se porque no lo importa rpc internamente ya que se necesita
 
 import html
@@ -161,18 +160,26 @@ class UserStatusTree(resource.Resource):
         resource.Resource.__init__(self)
         self.service = service
         self.putChild(b"RPC2", UserStatusXR(self.service))
+        self.putChild(b"", self)
+
+    def _cb_render_GET(self, users, request):
+        userOutput = "".join(
+            [f'<li><a href="{user.decode('utf-8')}">{user.decode('utf-8')}</a></li>' for user in users]
+        )
+        html = ("""
+            <html><head><title>Users</title></head><body>
+            <h1>Users</h1>
+            <ul>
+            %s
+            </ul></body></html>"""
+            % userOutput
+        )
+        request.write(html.encode())
+        request.finish()
 
     def render_GET(self, request):
         d = self.service.getUsers()
-        def formatUsers(users):
-            print(users)
-            l = [f'<li><a href="{user.decode('utf-8')}">{user.decode('utf-8')}</a></li>' for user in users]
-            print(l)
-            return "<ul>" + "".join(l) + "</ul>"
-        d.addCallback(formatUsers)
-        d.addCallback(lambda s: s.encode())
-        d.addCallback(request.write)
-        d.addCallback(lambda _: request.finish())
+        d.addCallback(self._cb_render_GET, request)
         return server.NOT_DONE_YET
 
     def getChild(self, path, request):
@@ -191,14 +198,19 @@ class UserStatus(resource.Resource):
         self.user = user
         self.service = service
 
+    def _cb_render_GET(self, status, request):
+        request.write(
+            b"""<html><head><title>%s</title></head>
+            <body><h1>%s</h1>
+            <p>%s</p>
+            </body></html>"""
+            % (self.user, self.user, status)
+        )
+        request.finish()
+
     def render_GET(self, request):
         d = self.service.getUser(self.user)
-        d.addCallback(lambda x: x.decode('utf-8'))
-        d.addCallback(html.escape)
-        d.addCallback(lambda m: "<h1>%s</h1>" % self.user.decode('utf-8') + "<p>%s</p>" % m)
-        d.addCallback(lambda x: x.encode())
-        d.addCallback(request.write)
-        d.addCallback(lambda _: request.finish())
+        d.addCallback(self._cb_render_GET, request)
         return server.NOT_DONE_YET
 
 
@@ -258,7 +270,7 @@ def main():
     # sudo /your_venv/twisted/bin/twistd -ny finger.tac
     global application
     application = service.Application("finger", uid=1, gid=1)
-    f = LocalFingerService()
+    f = FingerService("/etc/users")
     serviceCollection = service.IServiceCollection(application)
     f.setServiceParent(serviceCollection)
     strports.service("tcp:79", IFingerFactory(f)).setServiceParent(serviceCollection)
