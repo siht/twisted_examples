@@ -1,11 +1,17 @@
-from twisted.internet import endpoints, protocol, reactor
+from twisted.internet import defer, endpoints, protocol, reactor
 from twisted.protocols import basic
 
 
 class FingerProtocol(basic.LineReceiver):
     def lineReceived(self, user):
-        self.transport.write(self.factory.getUser(user) + b"\r\n")
-        self.transport.loseConnection()
+        d = self.factory.getUser(user)
+        def onError(err):
+            return "Internal error in server"
+        d.addErrback(onError)
+        def writeResponse(message):
+            self.transport.write(message + b"\r\n")
+            self.transport.loseConnection()
+        d.addCallback(writeResponse)
 
 
 class FingerFactory(protocol.ServerFactory):
@@ -15,7 +21,7 @@ class FingerFactory(protocol.ServerFactory):
         self.users = users
 
     def getUser(self, user):
-        return self.users.get(user, b"No such user")
+        return defer.succeed(self.users.get(user, b"No such user"))
 
 
 def main():
