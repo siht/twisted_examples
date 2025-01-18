@@ -2,7 +2,8 @@ from twisted.internet import endpoints, protocol, reactor
 
 
 class FingerProtocol(protocol.Protocol):
-    pass
+    def connectionMade(self):
+        self.transport.loseConnection()
 
 
 class FingerFactory(protocol.ServerFactory):
