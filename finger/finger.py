@@ -3,6 +3,7 @@ from twisted.internet import endpoints, protocol, reactor
 
 class FingerProtocol(protocol.Protocol):
     def lineReceived(self, user):
+        self.transport.write(b"No such user\r\n")
         self.transport.loseConnection()
 
 
