@@ -1,6 +1,9 @@
+import html
+
 from twisted.application import service, strports
 from twisted.internet import defer, protocol, reactor
 from twisted.protocols import basic
+from twisted.web import resource, server, static
 
 
 class FingerProtocol(basic.LineReceiver):
@@ -13,6 +16,32 @@ class FingerProtocol(basic.LineReceiver):
             self.transport.write(message + b"\r\n")
             self.transport.loseConnection()
         d.addCallback(writeResponse)
+
+
+class FingerResource(resource.Resource):
+    def __init__(self, users):
+        self.users = users
+        resource.Resource.__init__(self)
+        # we treat the path as the username
+
+    def getChild(self, username, request):
+        """
+        'username' is L{bytes}.
+        'request' is a 'twisted.web.server.Request'.
+        """
+        messagevalue = self.users.get(username)
+        if messagevalue:
+            messagevalue = messagevalue.decode("ascii")
+        if username:
+            username = username.decode("ascii")
+        username = html.escape(username)
+        if messagevalue is not None:
+            messagevalue = html.escape(messagevalue)
+            text = f"<h1>{username}</h1><p>{messagevalue}</p>"
+        else:
+            text = f"<h1>{username}</h1><p>No such user</p>"
+        text = text.encode("ascii")
+        return static.Data(text, "text/html")
 
 
 class FingerService(service.Service):
@@ -46,15 +75,20 @@ class FingerService(service.Service):
         f.getUser = self.getUser
         return f
 
+    def getResource(self):
+        r = FingerResource(self.users)
+        return r
+
 
 def main():
     # sudo /your_venv/twisted/bin/twistd -ny finger.tac
     global application
     application = service.Application("finger", uid=1, gid=1)
     f = FingerService("/etc/users")
-    finger = strports.service("tcp:79", f.getFingerFactory())
-    finger.setServiceParent(service.IServiceCollection(application))
-    f.setServiceParent(service.IServiceCollection(application))
+    serviceCollection = service.IServiceCollection(application)
+    f.setServiceParent(serviceCollection)
+    strports.service("tcp:79", f.getFingerFactory()).setServiceParent(serviceCollection)
+    strports.service("tcp:8000", server.Site(f.getResource())).setServiceParent(serviceCollection)
 
 
 if __name__ == 'builtins':
