@@ -1,6 +1,6 @@
-*.pyc
+*.pid
+*.py[cod]
 *.pem
 *.cert
 _trial_temp/*
 _trial_temp/
-*.pid
