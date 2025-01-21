@@ -1,4 +1,4 @@
-from twisted.internet.protocol import Protocol
+from twisted.internet.protocol import Protocol, ServerFactory
 
 
 class Echo(Protocol):
@@ -8,10 +8,15 @@ class Echo(Protocol):
 
 
 def main():
-    # los protocoloes no hacen nada por si mismos deben estar
-    # en un factory o en caso de udp parece ser no necesario
-    # el ejemplo no incluye este main informativo
-    pass
+    from twisted.internet.endpoints import TCP4ServerEndpoint
+    from twisted.internet import reactor
+    
+    class EchoFactory(ServerFactory):
+        protocol = Echo # en este momento aun no hay un transport en el protocolo
+
+    endpoint = TCP4ServerEndpoint(reactor, 8007)
+    endpoint.listen(EchoFactory()) # en este momento es cuando en el factory se pone el transport que eventualmente lo sabrá protocol
+    reactor.run()
 
 
 if __name__ == '__main__':
