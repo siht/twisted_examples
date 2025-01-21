@@ -316,6 +316,7 @@ def main():
     ).setServiceParent(serviceCollection)
     strports.service("tcp:8889", pb.PBServerFactory(IPerspectiveFinger(f))
     ).setServiceParent(serviceCollection)
+    reactor.run()
 
 
 if __name__ == '__main__':
